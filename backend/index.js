@@ -52,11 +52,15 @@ app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use('/api/auth', userRoute);
 app.use('/api/messages', messageRouter);
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, (err) => {
-    if (!err) {
-        console.warn("server is running on port: ", PORT)
-    }
-})
+if (process.env.NODE_ENV !== "production") {
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, (err) => {
+        if (!err) {
+            console.warn("server is running on port: ", PORT)
+        }
+    })
+}
 
-module.exports = { io}; // export io and userSocketMap for use in other files(.. messageController)
+// export server for vercel
+
+module.exports = { io ,server}; // export io and userSocketMap for use in other files(.. messageController)
