@@ -3,10 +3,8 @@ const User = require("../models/user");
 
 const cloudinary = require('cloudinary').v2;
 // const { io, userSocketMap } = require('../index'); // import io and userSocketMap from index.js
-// const { getSocket } = require('../socketStore');
-// const { io } = require('../index');
-
-const { getIo, getSocket } = require('../socketStore');
+const { getSocket } = require('../socketStore');
+const { io } = require('../index');
 
 
 //  get all user except the logged in user
@@ -46,7 +44,7 @@ const getMessages = async (req, res) => {
                 { senderId: selectedUserId, receiverId: myId }
             ]
         });
-        await Message.updateMany({ senderId: selectedUserId, receiverId: myId, seen: false }, { seen: true });
+        await Message.updateMany({ senderId: selectedUserId, receiverId: myId }, { seen: true });
         res.json({ success: true, messages });
 
     } catch (error) {
@@ -87,30 +85,15 @@ const sendMessages = async (req, res) => {
         });
         //  emit the new message to the reciever to the reciever's socket in real time
         console.log("Looking for receiverId:", receiverId?.toString());
-
-        // const socketId = getSocket(receiverId?.toString());
-        // if (socketId) {
-        //     io.to(socketId).emit("newMessage", newMessage);
-        // }
-        // else {
-        //     console.warn("User is offline :", receiverId);
-        // }
-        const io = getIo();
-        const receiverSocketId = getSocket(receiverId?.toString());
-        const senderSocketId = getSocket(senderId?.toString());
-
-        // Emit to receiver (if online)
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("newMessage", newMessage);
+        const socketId = getSocket(receiverId?.toString());
+        if (socketId) {
+            io.to(socketId).emit("newMessage", newMessage);
         }
-
-        // Emit to sender (so sender also sees same socket flow)
-        if (senderSocketId) {
-            io.to(senderSocketId).emit("newMessage", newMessage);
+        else {
+            console.warn("User is offline :", receiverId);
         }
 
         return res.json({ success: true, newMessage });
-
 
     } catch (error) {
         console.log("error1", error.message);

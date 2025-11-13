@@ -2,7 +2,6 @@ const User =require("../models/user.js");
 const bcrypt =require('bcryptjs');
 const  generateToken  =require('../lib/utils.js');
 const cloudinary=require('../lib/cloudinary.js');
-const { getIo } = require("../socketStore.js"); // ✅ add this line
 
 // sign up new user
 const signUp = async (req, res) => {
@@ -87,9 +86,6 @@ const updateProfile = async (req, res) => {
         { new: true }
       );
     }
-    // ✅ Emit real-time update event
-    const io = getIo();
-    io.emit("profileUpdated", updatedUser);
 
     res.json({
       success: true,

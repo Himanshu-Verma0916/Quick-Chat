@@ -15,18 +15,11 @@ const server = http.createServer(app);
 
 // Inialize Socket.io Server
 const io = new Server(server, {
-  cors: {
-    origin: "*", // adjust for your frontend URL in production
-    methods: ["GET", "POST", "PUT"],
-  },
+    cors: { origins: "*" }
 });
 // store online users
 // const userSocketMap={};
-
-// const { setSocket, removeSocket, getAllOnlineUsers } = require('./socketStore');
-const { setSocket, removeSocket, getAllOnlineUsers, setIo } = require('./socketStore');
-
-setIo(io); // ✅ Store io instance globally
+const { setSocket, removeSocket, getAllOnlineUsers } = require('./socketStore');
 
 
 // socket.io connection handler
@@ -55,8 +48,6 @@ app.use(express.json({ limit: "4mb" }))
 app.use(cors()); // help to import all urls from backend
 
 // routes setup
-app.get("/", (req, res) => res.send("Root is live"));
-
 app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use('/api/auth', userRoute);
 app.use('/api/messages', messageRouter);
@@ -72,4 +63,4 @@ if (process.env.NODE_ENV !== "production") {
 
 // export server for vercel
 
-module.exports = {app, io ,server}; // export io and userSocketMap for use in other files(.. messageController)
+module.exports = { io ,server}; // export io and userSocketMap for use in other files(.. messageController)

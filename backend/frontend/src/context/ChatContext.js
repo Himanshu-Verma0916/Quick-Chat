@@ -10,7 +10,7 @@ export const ChatProvider = ({ children }) => {
     const [unseenMessages, setUnseenMessages] = useState({});  // object to hold count of unseen messages per user
 
     const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
-    const { socket, authUser } = useContext(AuthContext);
+    const { socket } = useContext(AuthContext);
     // Function to fetch users for the sidebar
     const fetchUsers = async () => {
         try {
@@ -67,7 +67,8 @@ export const ChatProvider = ({ children }) => {
 
 
             if (data.success) {
-                // setMessages((prevMessages) => [...prevMessages, data.newMessage]);
+                setMessages((prevMessages) => [...prevMessages, data.newMessage]);
+                socket.emit('newMessage', data.newMessage); // Emit new message event to socket
             }
         } catch (error) {
             console.log('Error sending message:', error.message);
@@ -78,47 +79,33 @@ export const ChatProvider = ({ children }) => {
     // Function to subscribe to messages for selected user from sockets(live)
     const subscribeToMessages = async () => {
         if (!socket) return;
-
-        socket.off("newMessage"); // remove duplicate listeners
-
         socket.on("newMessage", async (newMessage) => {
-            // ✅ Always update if the chat is open with this user
             if (
                 selectedUser &&
                 (newMessage.senderId === selectedUser._id ||
                     newMessage.receiverId === selectedUser._id)
             ) {
+                newMessage.seen = true;
                 setMessages((prevMessages) => [...prevMessages, newMessage]);
 
-                // ✅ If the message is received (not sent by me), mark as seen
-                if (newMessage.receiverId === authUser._id) {
-                    await fetch(`${backendUrl}/api/messages/mark/${newMessage._id}`, {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            token: localStorage.getItem("token"),
-                        },
-                    });
-                }
-            } else {
-                // ✅ If chat is not open, update unseen count
-                // setUnseenMessages((prevUnseenMessages) => ({
-                //     ...prevUnseenMessages,
-                //     [newMessage.senderId]:
-                //         (prevUnseenMessages[newMessage.senderId] || 0) + 1,
-                // }));
-                setUnseenMessages((prevUnseenMessages) => {
-                    const updated = {
-                        ...prevUnseenMessages,
-                        [newMessage.senderId]:
-                            (prevUnseenMessages[newMessage.senderId] || 0) + 1,
-                    };
-                    return { ...updated }; // ensures state change triggers re-render
+                // Mark message as seen
+                await fetch(`${backendUrl}/api/messages/markMessageAsSeen/${newMessage._id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'token': localStorage.getItem('token')
+                    }
                 });
+            } else {
+                // Update unseen count
+                setUnseenMessages((prevUnseenMessages) => ({
+                    ...prevUnseenMessages,
+                    [newMessage.senderId]: (prevUnseenMessages[newMessage.senderId] || 0) + 1
+                }));
             }
         });
-    };
 
+    }
 
     // Function to unsubscribe from messages
     const unsubscribeFromMessages = () => {
@@ -126,58 +113,13 @@ export const ChatProvider = ({ children }) => {
         socket.off("newMessage");
     }
 
-    // useEffect(() => {
-    //     if (!selectedUser) return;
-    //     const init = () => {
-    //         subscribeToMessages();
-    //     };
-    //     init();
-    //     return () => unsubscribeFromMessages();
-    // }, [socket, selectedUser]);
-
     useEffect(() => {
-        if (!socket) return;
-
-        // remove previous listener
-        socket.off("newMessage");
-
-        socket.on("newMessage", async (newMessage) => {
-            // ✅ Case 1: chat is open with that user
-            if (
-                selectedUser &&
-                (newMessage.senderId === selectedUser._id ||
-                    newMessage.receiverId === selectedUser._id)
-            ) {
-                setMessages((prevMessages) => [...prevMessages, newMessage]);
-
-                // mark seen if received by me
-                if (newMessage.receiverId === authUser._id) {
-                    await fetch(`${backendUrl}/api/messages/mark/${newMessage._id}`, {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            token: localStorage.getItem("token"),
-                        },
-                    });
-                }
-            }
-            // ✅ Case 2: chat is NOT open — update unseen count live
-            else if (newMessage.receiverId === authUser._id) {
-                setUnseenMessages((prev) => {
-                    const updated = {
-                        ...prev,
-                        [newMessage.senderId]: (prev[newMessage.senderId] || 0) + 1,
-                    };
-                    return { ...updated };
-                });
-            }
-        });
-
-        return () => {
-            socket.off("newMessage");
+        const init = () => {
+            subscribeToMessages();
         };
-    }, [socket, selectedUser, authUser]);
-
+        init();
+        return () => unsubscribeFromMessages();
+    }, [socket, selectedUser]);
 
     const value = {
         messages,
