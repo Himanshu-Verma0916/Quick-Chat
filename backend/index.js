@@ -64,7 +64,6 @@ app.use('/api/messages', messageRouter);
 app.get("/", (req, res) => {
   res.send("Quick Chat Backend is running...");
 });
-app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 
 // ✅ Start the HTTP server (this is essential for Socket.IO)
