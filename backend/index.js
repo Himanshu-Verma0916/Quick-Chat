@@ -61,15 +61,12 @@ app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use('/api/auth', userRoute);
 app.use('/api/messages', messageRouter);
 
+// ✅ Start the HTTP server (this is essential for Socket.IO)
 if (process.env.NODE_ENV !== "production") {
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT, (err) => {
-        if (!err) {
-            console.warn("server is running on port: ", PORT)
-        }
-    })
+    server.listen(PORT, () => {
+        console.warn("server is running on port: ", PORT);
+    });
 }
-
-// export server for vercel
 
 module.exports = {app, io ,server}; // export io and userSocketMap for use in other files(.. messageController)
